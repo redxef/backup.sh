@@ -1,6 +1,6 @@
 # backup.sh
 
-Create incremental, index archives with tar.
+Create incremental, indexed archives with tar.
 
 # Description
 
