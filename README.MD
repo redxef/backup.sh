@@ -6,7 +6,7 @@ Create incremental, index archives with tar.
 
 Tar already provides a way to create incremental backups natively.
 But there is no way to branch backups and make multiple incremental backups
-from a level 0 dump. This actually only involves copying the the index file
+from a level 0 dump. This actually only involves copying the index file
 and using this from there on. The aim of this little script is to automate the
 management of these index files.
 
@@ -18,7 +18,7 @@ cd backup.sh
 mkdir test
 touch test/a.txt
 
-# backup initial modifications up
+# backup initial modifications
 ./backup.sh archive test test0.tar.bz2 test.snar
 echo 'HELLO!' > test/a.txt
 ./backup.sh archive test test1.tar.bz2 test.snar
