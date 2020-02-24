@@ -160,6 +160,7 @@ branch() {
     local idx_new_sed="$(sanitize_sed "$idx_new")"
     local entry="$(sed "s/$idx_sed/$idx_new_sed/" <<< "$entry")"
     echo "$entry" >> "$MASTER_INDEX"
+    cp "$idx" "$idx_new"
 }
 
 "$@"
