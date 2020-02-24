@@ -144,16 +144,8 @@ restore() {
 }
 
 branch() {
-    local src="$1"
-    local dst="$2"
-    local idx="$3"
-    local idx_new="$4"
-
-    if [[ -z "$idx" ]]; then
-        error "No index specified, aborting"
-    elif [[ -z "$idx_new" ]]; then
-        error "No new index specified, aborting"
-    fi
+    local idx="$1"
+    local idx_new="$2"
 
     local entry="$(grep "^$idx:" "$MASTER_INDEX")"
     local new_entry="$(grep "^$idx_new:" "$MASTER_INDEX")"
@@ -168,8 +160,6 @@ branch() {
     local idx_new_sed="$(sanitize_sed "$idx_new")"
     local entry="$(sed "s/$idx_sed/$idx_new_sed/" <<< "$entry")"
     echo "$entry" >> "$MASTER_INDEX"
-
-
 }
 
 "$@"
