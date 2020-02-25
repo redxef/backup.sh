@@ -1,6 +1,6 @@
 # backup.sh
 
-Create incremental, index archives with tar.
+Create incremental, indexed archives with tar.
 
 # Description
 
@@ -49,3 +49,12 @@ rm test/a.txt
 ./backup.sh restore test2.tar.bz2 test
 
 ```
+
+# Automatically managing backups.
+
+It is also possible to create a configuration file which will be read
+when the program runs the sub-program managed_cycle, without any
+arguments (\``./backup.sh managed_cycle`'). According to rules in
+the \``rules.conf`' file backups will be automatically generated, there
+is as of yet no way to delete old backups, this will need to be done
+manually.
