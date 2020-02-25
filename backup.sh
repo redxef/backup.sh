@@ -16,8 +16,8 @@ warn() {
 }
 
 error() {
-    warn "Error: $@"
-    [[ -z "$2" ]] && exit '-1' || exit "$2"
+    warn "Error: " "$@"
+    [[ -z "$2" ]] && exit '255' || exit "$2"
 }
 
 sanitize_sed() {
@@ -39,10 +39,13 @@ sanitize_paths() {
 }
 
 archive() {
-    local src="$(sanitize_paths "$1")"
-    local dst="$(sanitize_paths "$2")"
-    local idx="$(sanitize_paths "$3")"
-    local split="$4"
+    local src dst idx split IFS
+    local tar_opts split_opts cmd_tar cmd_split
+    local idx_sed dst_sed
+    src="$(sanitize_paths "$1")"
+    dst="$(sanitize_paths "$2")"
+    idx="$(sanitize_paths "$3")"
+    split="$4"
 
     if [[ -z "$src" ]]; then
         error "No source specified, aborting"
@@ -50,7 +53,7 @@ archive() {
         error "No destination specified, aborting"
     fi
 
-    if [[ ! -z "$DEBUG" ]]; then
+    if [[ -n "$DEBUG" ]]; then
         debug "src directory is: $src"
         debug "dst file is: $dst"
         debug "index file is: $idx"
@@ -58,28 +61,28 @@ archive() {
     fi
 
     # prepare command
-    local IFS=' '
-    local tar_opts=( --exclude-from="$EXCLUDE_FILE" )
-    if [[ ! -z "$idx" ]]; then
-        local tar_opts+=( --listed-incremental="$idx" )
+    IFS=' '
+    tar_opts=( --exclude-from="$EXCLUDE_FILE" )
+    if [[ -n "$idx" ]]; then
+        tar_opts+=( --listed-incremental="$idx" )
     fi
-    local tar_opts+=( --xattrs --numeric-owner --atime-preserve --create --preserve-permissions --bzip2 )
+    tar_opts+=( --xattrs --numeric-owner --atime-preserve --create --preserve-permissions --bzip2 )
     if [[ -z "$split" ]]; then
-        local tar_opts+=( --verbose --verbose --file="$dst" )
+        tar_opts+=( --verbose --verbose --file="$dst" )
     fi
-    local tar_opts+=( -C "$src" . )
+    tar_opts+=( -C "$src" . )
 
-    local split_opts=(  )
-    if [[ ! -z "$split" ]]; then
-        local split_opts+=( --bytes="$split" --suffix-length="$SUFFIX_LEN")
+    split_opts=(  )
+    if [[ -n "$split" ]]; then
+        split_opts+=( --bytes="$split" --suffix-length="$SUFFIX_LEN")
     fi
 
-    local cmd_tar=( tar "${tar_opts[@]}" )
-    local cmd_split=( split "${split_opts[@]}" - "$dst." )
+    cmd_tar=( tar "${tar_opts[@]}" )
+    cmd_split=( split "${split_opts[@]}" - "$dst." )
 
-    if [[ ! -z "$DEBUG" ]]; then
-        debug "tar cmd: ${cmd_tar[@]}"
-        debug "split cmd: ${cmd_split[@]}"
+    if [[ -n "$DEBUG" ]]; then
+        debug "tar cmd: " "${cmd_tar[@]}"
+        debug "split cmd: " "${cmd_split[@]}"
     fi
 
     # archive
@@ -94,11 +97,11 @@ archive() {
     # on basing using this archive as a level n-1 dump.
     # format: every line is one entry, beginning with the index filename followed by a colon (':')
     # after this there is a ordered, space seperated list of files which need to be restored.
-    if [[ ! -z "$idx" ]]; then
-        if [[ ! -z "$(grep "^$idx:.*$" "$MASTER_INDEX")" ]]; then
-            local idx_sed="$(sanitize_sed "$idx")"
-            local dst_sed="$(sanitize_sed "$dst")"
-            if [[ ! -z "$DEBUG" ]]; then
+    if [[ -n "$idx" ]]; then
+        if [[ -n "$(grep "^$idx:.*$" "$MASTER_INDEX")" ]]; then
+            idx_sed="$(sanitize_sed "$idx")"
+            dst_sed="$(sanitize_sed "$dst")"
+            if [[ -n "$DEBUG" ]]; then
                 debug "sed regex: /^$idx_sed:/ s/$/ $dst_sed/"
             fi
             sed -i "/^$idx_sed:/ s/$/ $dst_sed/" "$MASTER_INDEX"
@@ -109,10 +112,12 @@ archive() {
 }
 
 restore_ign_idx() {
-    local src="$(sanitize_paths "$1")"
-    local dst="$(sanitize_paths "$2")"
-    local idx="$(sanitize_paths "$3")"
-    local split=
+    local src dst idx split IFS
+    local cat_opts tar_opts cmd_cat cmd_tar
+    src="$(sanitize_paths "$1")"
+    dst="$(sanitize_paths "$2")"
+    idx="$(sanitize_paths "$3")"
+    split=
 
     if [[ -z "$src" ]]; then
         error "No source specified, aborting"
@@ -121,7 +126,7 @@ restore_ign_idx() {
     fi
 
     if [[ -f "$src" ]]; then
-        local split=
+        split=
     else
         if ls "$src."* 1> /dev/null 2>&1; then
             split=true
@@ -130,20 +135,20 @@ restore_ign_idx() {
         fi
     fi
 
-    local IFS=' '
-    local cat_opts=( "$src."* )
-    local tar_opts=(  )
-    if [[ ! -z "$idx" ]]; then
-        local tar_opts+=( --listed-incremental=/dev/null )
+    IFS=' '
+    cat_opts=( "$src."* )
+    tar_opts=(  )
+    if [[ -n "$idx" ]]; then
+        tar_opts+=( --listed-incremental=/dev/null )
     fi
-    local tar_opts+=( --xattrs --numeric-owner --atime-preserve --extract --preserve-permissions --bzip2)
+    tar_opts+=( --xattrs --numeric-owner --atime-preserve --extract --preserve-permissions --bzip2)
     if [[ -z "$split" ]]; then
-        local tar_opts+=( --verbose --verbose --file="$src" )
+        tar_opts+=( --verbose --verbose --file="$src" )
     fi
-    local tar_opts+=( --directory="$dst" )
+    tar_opts+=( --directory="$dst" )
 
-    local cmd_cat=( cat "${cat_opts[@]}" )
-    local cmd_tar=( tar "${tar_opts[@]}" )
+    cmd_cat=( cat "${cat_opts[@]}" )
+    cmd_tar=( tar "${tar_opts[@]}" )
 
     if [[ -z "$split" ]]; then
         "${cmd_tar[@]}"
@@ -153,8 +158,10 @@ restore_ign_idx() {
 }
 
 restore() {
-    local src="$(sanitize_paths "$1")"
-    local dst="$(sanitize_paths "$2")"
+    local src dst restore_order
+    local idx idx_sed arch
+    src="$(sanitize_paths "$1")"
+    dst="$(sanitize_paths "$2")"
 
     if [[ -z "$src" ]]; then
         error "No source specified, aborting"
@@ -162,10 +169,10 @@ restore() {
         error "No destination specified, aborting"
     fi
 
-    local restore_order="$(grep "\( \|:\)$src\( \|\$\)" "$MASTER_INDEX")"
-    local idx="$(grep -o '^[^:]*' <<< "$restore_order")"
-    local idx_sed="$(sanitize_sed "$idx")"
-    local restore_order="$(sed "s/$idx_sed://" <<< "$restore_order")"
+    restore_order="$(grep "\( \|:\)$src\( \|\$\)" "$MASTER_INDEX")"
+    idx="$(grep -o '^[^:]*' <<< "$restore_order")"
+    idx_sed="$(sanitize_sed "$idx")"
+    restore_order="$(sed "s/$idx_sed://" <<< "$restore_order")"
 
     echo "$restore_order"
     echo "$idx"
@@ -174,9 +181,7 @@ restore() {
         restore_ign_idx "$src" "$dst"
     else
         read -ra restore_order <<< "$restore_order"
-        local rest_order=("${restore_order[@]}")
-        unset restore_order
-        for arch in "${rest_order[@]}"; do
+        for arch in "${restore_order[@]}"; do
             restore_ign_idx "$arch" "$dst"
         done
 
@@ -185,21 +190,23 @@ restore() {
 }
 
 branch() {
-    local idx="$(sanitize_paths "$1")"
-    local idx_new="$(sanitize_paths "$2")"
+    local idx idx_new entry new_entry
+    local idx_sed idx_new_sed
+    idx="$(sanitize_paths "$1")"
+    idx_new="$(sanitize_paths "$2")"
 
-    local entry="$(grep "^$idx:" "$MASTER_INDEX")"
-    local new_entry="$(grep "^$idx_new:" "$MASTER_INDEX")"
+    entry="$(grep "^$idx:" "$MASTER_INDEX")"
+    new_entry="$(grep "^$idx_new:" "$MASTER_INDEX")"
 
     if [[ -z "$entry" ]]; then
         error "Index does not exist, can't branch, aborting"
-    elif [[ ! -z "$new_entry" ]]; then
+    elif [[ -n "$new_entry" ]]; then
         error "New index does already exist, would generate duplicate entry, aborting"
     fi
 
-    local idx_sed="$(sanitize_sed "$idx")"
-    local idx_new_sed="$(sanitize_sed "$idx_new")"
-    local entry="$(sed "s/$idx_sed/$idx_new_sed/" <<< "$entry")"
+    idx_sed="$(sanitize_sed "$idx")"
+    idx_new_sed="$(sanitize_sed "$idx_new")"
+    entry="$(sed "s/$idx_sed/$idx_new_sed/" <<< "$entry")"
     echo "$entry" >> "$MASTER_INDEX"
     cp "$idx" "$idx_new"
 }
@@ -210,58 +217,62 @@ generate_filename() {
 }
 
 match_existing_files() {
-    local match_string="$1"
-    local type_name="$2"
+    local match_string type_name IFS
+    local arr_names arr_subs
+    match_string="$1"
+    type_name="$2"
 
-    local IFS=' '
-    local arr_names=( TN % YYYY MM DD hh mm ss TZ CW WD self)
-    local arr_subs=( "$type_name" % $(date '+%Y %m %d %H %M %S %:z %V %u') "$(generate_filename "$type_name")" )
+    IFS=' '
+    arr_names=( TN % YYYY MM DD hh mm ss TZ CW WD self)
+    arr_subs=( "$type_name" % $(date '+%Y %m %d %H %M %S %:z %V %u') "$(generate_filename "$type_name")" )
 
-    local IFS=$'\n'
+    IFS=$'\n'
     for ((i=0; i<${#arr_names[@]}; i++)); do
-        local match_string="$(sed "s/%${arr_names[$i]}/${arr_subs[$i]}/" <<< "$match_string")"
+        match_string="$(sed "s/%${arr_names[$i]}/${arr_subs[$i]}/" <<< "$match_string")"
     done
 
     find "$BACKUP_DIR" -type f -regextype sed -regex "\(.*/\|^\)$match_string.*" -exec basename {} \;
 }
 
 match_name() {
-    local match_string="$1"
-    local type_name="$2"
+    local match_string type_name IFS
+    local arr_names arr_subs name
+    match_string="$1"
+    type_name="$2"
 
-    local IFS=' '
-    local arr_names=( TN % YYYY MM DD hh mm ss TZ CW WD self )
-    local arr_subs=( "$type_name" % $(date '+%Y %m %d %H %M %S %:z %V %u') "$(generate_filename "$type_name")" )
+    IFS=' '
+    arr_names=( TN % YYYY MM DD hh mm ss TZ CW WD self )
+    arr_subs=( "$type_name" % $(date '+%Y %m %d %H %M %S %:z %V %u') "$(generate_filename "$type_name")" )
 
-    local IFS=$'\n'
+    IFS=$'\n'
     for ((i=0; i<${#arr_names[@]}; i++)); do
-        local match_string="$(sed "s/%${arr_names[$i]}/${arr_subs[$i]}/" <<< "$match_string")"
+        match_string="$(sed "s/%${arr_names[$i]}/${arr_subs[$i]}/" <<< "$match_string")"
     done
 
-    local name="$(generate_filename "$type_name")"
+    name="$(generate_filename "$type_name")"
 
-    local match_string="^$match_string\$"
+    match_string="^$match_string\$"
     if [[ "$name" =~ $match_string ]]; then
         echo "$name"
     fi
 }
 
 create_backup() {
-    local filename="$1"
-    local l0backup="$2"
-    local directory="$3"
+    local filename l0backup directory idx
+    filename="$1"
+    l0backup="$2"
+    directory="$3"
 
     echo "Backing up $directory to $filename"
-    if [[ ! -z "$l0backup" ]]; then
+    if [[ -n "$l0backup" ]]; then
         echo "Backup l0 dump is: $l0backup"
     fi
 
-    local idx=
-    if [[ ! -z "$l0backup" ]]; then
-        local idx="$l0backup.svnr"
+    if [[ -n "$l0backup" ]]; then
+        idx="$l0backup.svnr"
     fi
 
-    if [[ ! -z "$idx" ]]; then
+    if [[ -n "$idx" ]]; then
         branch "$SNAPSHOT_DIR/$idx" "$SNAPSHOT_DIR/$filename.svnr"
     fi
 
@@ -271,6 +282,10 @@ create_backup() {
 }
 
 managed_cycle() {
+    local line IFS var_val old_IFS
+    local match_exist_name_ss match_exist_name_s
+    local match_name_ss match_name_s
+    local l0back
     local entry_name=
     local type=
     local incremental_match_base=
@@ -279,19 +294,20 @@ managed_cycle() {
     local match_name=
     local directory=
 
-    local IFS=$'\n'
-    while read line; do
+
+    IFS=$'\n'
+    while read -r line; do
 
         # comments are '#' trim them and if the line is empty skip it (this also gets rid of trailing newlines).
-        local line="$(sed 's/#.*//' <<< "$line")"
+        line="$(sed 's/#.*//' <<< "$line")"
         if [[ -z "$line" ]]; then
             continue
         fi
-        local var_val=
-        local old_IFS="$IFS"
-        local IFS=$'\t''= ' # we don't want trailing or leading spaces/tabs
+        var_val=
+        old_IFS="$IFS"
+        IFS=$'\t''= ' # we don't want trailing or leading spaces/tabs
         read -ra var_val <<< "$line"
-        local IFS="$old_IFS"
+        IFS="$old_IFS"
 
 
         # is the current line a tag? [XXXX]
@@ -301,10 +317,10 @@ managed_cycle() {
             if [[ "$entry_name" =~ ..* ]]; then
                 echo "Checking target: $entry_name"
 
-                local match_exists_name_ss="$(match_existing_files "$match_exist_name" "$entry_name")"
-                local match_name_ss="$(match_name "$match_name" "$entry_name")"
-                local match_exist_name_s=( $match_exists_name_ss )
-                local match_name_s="$match_name_ss"
+                match_exist_name_ss="$(match_existing_files "$match_exist_name" "$entry_name")"
+                match_name_ss="$(match_name "$match_name" "$entry_name")"
+                match_exist_name_s=( $match_exist_name_ss )
+                match_name_s="$match_name_ss"
 
                 # echo "match_exist_name_ss"
                 # printf '%s\n' "$match_exists_name_ss"
@@ -314,17 +330,18 @@ managed_cycle() {
                 # printf '%s\n' "$match_name_s"
 
                 # check backup conditions and perform backup
-                if [[ ${#match_exist_name_s[@]} = 0 ]] && [[ ! -z "$match_name_s" ]]; then
+                if [[ ${#match_exist_name_s[@]} = 0 ]] && [[ -n "$match_name_s" ]]; then
                     echo "No prohibiting files found (checked against $match_exist_name)"
                     echo "Backup file will be: $match_name_s"
 
                     # if the type is incremental, determine the correct l0 dump
-                    local l0back=
+                    l0back=
                     if [[ "$type" = incremental ]]; then
-                        local l0back="$(match_existing_files "$incremental_match_base" "$entry_name")"
+                        l0back="$(match_existing_files "$incremental_match_base" "$entry_name")"
                         IFS=$'\n'
-                        local l0back=( $(sort -t'_' -k2 <<< "${l0back[*]}" | tac) )
-                        local l0back="$(sed 's/\.tar\..*$//' <<< "${l0back[0]}")"
+                        l0back=( $(sort -t'_' -k2 <<< "${l0back[*]}" | tac) )
+                        # shellcheck disable=SC2178
+                        l0back="$(sed 's/\.tar\..*$//' <<< "${l0back[0]}")"
                     fi
                     create_backup "$match_name_s" "$l0back" "$directory"
                 else
@@ -333,13 +350,13 @@ managed_cycle() {
             fi
 
             # start reading of new entry
-            local entry_name="$(tr -d '\]\[' <<< "${var_val[0]}")"
-            local type=
-            local incremental_match_base=
-            local incremental_match_base_alt=
-            local match_exist_name=
-            local match_name=
-            local directory=
+            entry_name="$(tr -d '\]\[' <<< "${var_val[0]}")"
+            type=
+            incremental_match_base=
+            incremental_match_base_alt=
+            match_exist_name=
+            match_name=
+            directory=
             continue
         fi
         local "${var_val[0]}"="${var_val[1]}"
@@ -358,13 +375,6 @@ sat_structure() {
     touch RULES_CONF
     touch SNAPSHOT_DIR
     touch BACKUP_DIR
-
-    cat << EOF
-
-
-
-
-    EOF
 }
 
 unset IFS

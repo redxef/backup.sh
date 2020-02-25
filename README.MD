@@ -50,7 +50,7 @@ rm test/a.txt
 
 ```
 
-# Automatically managing backups.
+# Automatically managing backups
 
 It is also possible to create a configuration file which will be read
 when the program runs the sub-program managed_cycle, without any
