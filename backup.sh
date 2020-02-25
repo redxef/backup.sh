@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 SUFFIX_LEN=3
-EXCLUDE_FILE=back_exclude.txt
+EXCLUDE_FILE=exclude.txt
 MASTER_INDEX=idx/backups.idx
-RULES_CONF=creation.conf
+RULES_CONF=rules.conf
 SNAPSHOT_DIR=snap/
 BACKUP_DIR=arch/
 
@@ -230,8 +230,8 @@ match_name() {
     local type_name="$2"
 
     local IFS=' '
-    local arr_names=( TN % YYYY MM DD hh mm ss TZ CW WD )
-    local arr_subs=( "$type_name" % $(date '+%Y %m %d %H %M %S %:z %V %u') )
+    local arr_names=( TN % YYYY MM DD hh mm ss TZ CW WD self )
+    local arr_subs=( "$type_name" % $(date '+%Y %m %d %H %M %S %:z %V %u') "$(generate_filename "$type_name")" )
 
     local IFS=$'\n'
     for ((i=0; i<${#arr_names[@]}; i++)); do
@@ -346,5 +346,27 @@ managed_cycle() {
     done < "$RULES_CONF"
 }
 
+sat_structure() {
+    mkdir -p "$(dirname "$EXCLUDE_FILE")"
+    mkdir -p "$(dirname "$MASTER_INDEX")"
+    mkdir -p "$(dirname "$RULES_CONF")"
+    mkdir -p "$(dirname "$SNAPSHOT_DIR")"
+    mkdir -p "$(dirname "$BACKUP_DIR")"
+
+    touch EXCLUDE_FILE
+    touch MASTER_INDEX
+    touch RULES_CONF
+    touch SNAPSHOT_DIR
+    touch BACKUP_DIR
+
+    cat << EOF
+
+
+
+
+    EOF
+}
+
 unset IFS
+sat_structure
 "$@"
