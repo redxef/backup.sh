@@ -309,6 +309,9 @@ managed_cycle() {
         read -ra var_val <<< "$line"
         IFS="$old_IFS"
 
+        if [[ -n DEBUG ]]; then
+            echo "[${var_val[0]}] [${var_val[1]}]"
+        fi
 
         # is the current line a tag? [XXXX]
         # if so the previous tag has been filled with all needed variables.
@@ -359,7 +362,9 @@ managed_cycle() {
             directory=
             continue
         fi
-        local "${var_val[0]}"="${var_val[1]}"
+        if [[ -n "${var_val[0]}" ]]; then
+            local "${var_val[0]}"="${var_val[1]}"
+        fi
     done < "$RULES_CONF"
 }
 
