@@ -6,6 +6,7 @@ MASTER_INDEX=idx/backups.idx
 RULES_CONF=rules.conf
 SNAPSHOT_DIR=snap/
 BACKUP_DIR=arch/
+STANDARD_ARCH_OPTS=( --xattrs --numeric-owner --atime-preserve=system --create --preserve-permissions --bzip2 )
 
 debug() {
     echo "$@" 1>&2
@@ -66,7 +67,7 @@ archive() {
     if [[ -n "$idx" ]]; then
         tar_opts+=( --listed-incremental="$idx" )
     fi
-    tar_opts+=( --xattrs --numeric-owner --atime-preserve --create --preserve-permissions --bzip2 )
+    tar_opts+=( "${STANDARD_ARCH_OPTS[@]}" )
     if [[ -z "$split" ]]; then
         tar_opts+=( --verbose --verbose --file="$dst" )
     fi
@@ -141,7 +142,7 @@ restore_ign_idx() {
     if [[ -n "$idx" ]]; then
         tar_opts+=( --listed-incremental=/dev/null )
     fi
-    tar_opts+=( --xattrs --numeric-owner --atime-preserve --extract --preserve-permissions --bzip2)
+    tar_opts+=( "${STANDARD_ARCH_OPTS[@]}" )
     if [[ -z "$split" ]]; then
         tar_opts+=( --verbose --verbose --file="$src" )
     fi
@@ -272,11 +273,13 @@ create_backup() {
         echo "Backup l0 dump is: $l0backup"
     fi
 
+    idx=
     if [[ -n "$l0backup" ]]; then
         idx="$l0backup.svnr"
     fi
 
     if [[ -n "$idx" ]]; then
+        echo "Branching from $idx to $filename.svnr"
         branch "$SNAPSHOT_DIR/$idx" "$SNAPSHOT_DIR/$filename.svnr"
     fi
 
