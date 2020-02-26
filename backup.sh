@@ -372,8 +372,8 @@ sat_structure() {
     mkdir -p "$(dirname "$EXCLUDE_FILE")"
     mkdir -p "$(dirname "$MASTER_INDEX")"
     mkdir -p "$(dirname "$RULES_CONF")"
-    mkdir -p "$(dirname "$SNAPSHOT_DIR")"
-    mkdir -p "$(dirname "$BACKUP_DIR")"
+    mkdir -p "$SNAPSHOT_DIR"
+    mkdir -p "$BACKUP_DIR"
 
     touch "$EXCLUDE_FILE"
     touch "$MASTER_INDEX"
