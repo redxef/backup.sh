@@ -375,11 +375,11 @@ sat_structure() {
     mkdir -p "$(dirname "$SNAPSHOT_DIR")"
     mkdir -p "$(dirname "$BACKUP_DIR")"
 
-    touch EXCLUDE_FILE
-    touch MASTER_INDEX
-    touch RULES_CONF
-    touch SNAPSHOT_DIR
-    touch BACKUP_DIR
+    touch "$EXCLUDE_FILE"
+    touch "$MASTER_INDEX"
+    touch "$RULES_CONF"
+    touch "$SNAPSHOT_DIR"
+    touch "$BACKUP_DIR"
 }
 
 unset IFS
