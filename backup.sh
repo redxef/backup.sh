@@ -53,7 +53,7 @@ archive() {
         error "No destination specified, aborting"
     fi
 
-    if [[ -n "$DEBUG" ]]; then
+    if [[ "$DEBUG" -ge 1 ]]; then
         debug "src directory is: $src"
         debug "dst file is: $dst"
         debug "index file is: $idx"
@@ -80,7 +80,7 @@ archive() {
     cmd_tar=( tar "${tar_opts[@]}" )
     cmd_split=( split "${split_opts[@]}" - "$dst." )
 
-    if [[ -n "$DEBUG" ]]; then
+    if [[ "$DEBUG" -ge 1 ]]; then
         debug "tar cmd: " "${cmd_tar[@]}"
         debug "split cmd: " "${cmd_split[@]}"
     fi
@@ -101,7 +101,7 @@ archive() {
         if [[ -n "$(grep "^$idx:.*$" "$MASTER_INDEX")" ]]; then
             idx_sed="$(sanitize_sed "$idx")"
             dst_sed="$(sanitize_sed "$dst")"
-            if [[ -n "$DEBUG" ]]; then
+            if [[ "$DEBUG" -ge 1 ]]; then
                 debug "sed regex: /^$idx_sed:/ s/$/ $dst_sed/"
             fi
             sed -i "/^$idx_sed:/ s/$/ $dst_sed/" "$MASTER_INDEX"
@@ -231,6 +231,10 @@ match_existing_files() {
         match_string="$(sed "s/%${arr_names[$i]}/${arr_subs[$i]}/" <<< "$match_string")"
     done
 
+    if [[ "$DEBUG" -ge 1 ]]; then
+        debug "Match string for files: $match_string"
+    fi
+
     find "$BACKUP_DIR" -type f -regextype sed -regex "\(.*/\|^\)$match_string.*" -exec basename {} \;
 }
 
@@ -309,7 +313,7 @@ managed_cycle() {
         read -ra var_val <<< "$line"
         IFS="$old_IFS"
 
-        if [[ -n DEBUG ]]; then
+        if [[ "$DEBUG" -ge 2 ]]; then
             echo "[${var_val[0]}] [${var_val[1]}]"
         fi
 
@@ -325,12 +329,14 @@ managed_cycle() {
                 match_exist_name_s=( $match_exist_name_ss )
                 match_name_s="$match_name_ss"
 
-                # echo "match_exist_name_ss"
-                # printf '%s\n' "$match_exists_name_ss"
-                # echo "match_exist_name_s"
-                # printf '[%s]\n' "${match_exist_name_s[@]}"
-                # echo "match_name_s"
-                # printf '%s\n' "$match_name_s"
+                if [[ "$DEBUG" -ge 1 ]]; then
+                    echo "match_exist_name_ss"
+                    printf '%s\n' "$match_exists_name_ss"
+                    echo "match_exist_name_s"
+                    printf '[%s]\n' "${match_exist_name_s[@]}"
+                    echo "match_name_s"
+                    printf '%s\n' "$match_name_s"
+                fi
 
                 # check backup conditions and perform backup
                 if [[ ${#match_exist_name_s[@]} = 0 ]] && [[ -n "$match_name_s" ]]; then
@@ -341,12 +347,20 @@ managed_cycle() {
                     l0back=
                     if [[ "$type" = incremental ]]; then
                         l0back="$(match_existing_files "$incremental_match_base" "$entry_name")"
-                        IFS=$'\n'
+                        if [[ "$DEBUG" -ge 1 ]]; then
+                            echo "found possible l0 backups:"
+                            echo "$l0back"
+                        fi
                         l0back=( $(sort -t'_' -k2 <<< "${l0back[*]}" | tac) )
                         # shellcheck disable=SC2178
                         l0back="$(sed 's/\.tar\..*$//' <<< "${l0back[0]}")"
                     fi
-                    create_backup "$match_name_s" "$l0back" "$directory"
+
+                    if [[ -z "$DRYRUN" ]]; then
+                        create_backup "$match_name_s" "$l0back" "$directory"
+                    else
+                        echo create_backup "$match_name_s" "$l0back" "$directory"
+                    fi
                 else
                     echo "Backup requirements already satisfied, nothing to do"
                 fi
