@@ -6,7 +6,7 @@ MASTER_INDEX=idx/backups.idx
 RULES_CONF=rules.conf
 SNAPSHOT_DIR=snap/
 BACKUP_DIR=arch/
-STANDARD_ARCH_OPTS=( --xattrs --numeric-owner --atime-preserve=system --create --preserve-permissions --bzip2 )
+STANDARD_ARCH_OPTS=( --xattrs --numeric-owner --atime-preserve=system --preserve-permissions --bzip2 )
 
 debug() {
     echo "$@" 1>&2
@@ -67,7 +67,7 @@ archive() {
     if [[ -n "$idx" ]]; then
         tar_opts+=( --listed-incremental="$idx" )
     fi
-    tar_opts+=( "${STANDARD_ARCH_OPTS[@]}" )
+    tar_opts+=( "${STANDARD_ARCH_OPTS[@]}" --create )
     if [[ -z "$split" ]]; then
         tar_opts+=( --verbose --verbose --file="$dst" )
     fi
@@ -142,7 +142,7 @@ restore_ign_idx() {
     if [[ -n "$idx" ]]; then
         tar_opts+=( --listed-incremental=/dev/null )
     fi
-    tar_opts+=( "${STANDARD_ARCH_OPTS[@]}" )
+    tar_opts+=( "${STANDARD_ARCH_OPTS[@]}" --extract )
     if [[ -z "$split" ]]; then
         tar_opts+=( --verbose --verbose --file="$src" )
     fi
