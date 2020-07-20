@@ -2,7 +2,7 @@
 
 SUFFIX_LEN=3
 EXCLUDE_FILE=exclude.txt
-MASTER_INDEX=idx/backups.idx
+MASTER_INDEX=backups.idx
 RULES_CONF=rules.conf
 SNAPSHOT_DIR=snap/
 BACKUP_DIR=arch/
