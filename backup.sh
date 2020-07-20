@@ -171,12 +171,13 @@ restore() {
     fi
 
     restore_order="$(grep "\( \|:\)$src\( \|\$\)" "$MASTER_INDEX")"
-    idx="$(grep -o '^[^:]*' <<< "$restore_order")"
+    # idx="$(grep -o '^[^:]*' <<< "$restore_order")"
+    idx="$(sed -n 's/\(^.*\): .*$/\1/p' <<< "$restore_order")"
     idx_sed="$(sanitize_sed "$idx")"
     restore_order="$(sed "s/$idx_sed://" <<< "$restore_order")"
 
-    echo "$restore_order"
-    echo "$idx"
+    echo "restore_order: $restore_order"
+    echo "index: $idx"
 
     if [[ -z "$idx" ]]; then
         restore_ign_idx "$src" "$dst"
